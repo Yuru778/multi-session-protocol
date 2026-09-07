@@ -106,6 +106,8 @@ your own, put the window in your own third line.
 
 ## 4. Claiming a shared resource → take the lock atomically
 
+`noclobber` is a POSIX shell option, so this recipe needs a POSIX shell (see Platform below).
+
 ```bash
 # Take it. noclobber makes > fail when the file already exists, which makes this atomic.
 ( set -o noclobber; echo "<me> until=16:40 reason=benchmark run" > <mailbox>/gpu.lock ) 2>/dev/null \
@@ -164,11 +166,25 @@ echo "[<me> $(date +%H:%M)] ASK can you reproduce this? <mailbox>/notes/repro.md
 ./scripts/watch-mailbox.sh <mailbox>/<peer>-to-<me>.md   # watch for its reply
 ```
 
-Watch with the **offset-based watcher** (`scripts/watch-mailbox.sh`, or `watch-mailbox.ps1` on
-Windows), never with `tail -F`: the moment the other side rewrites or truncates the file, `tail -F`
-replays the whole history into your context. The offset watcher's trade-off is that if the other side
+Watch with the **offset-based watcher** (`scripts/watch-mailbox.sh`), never with `tail -F`: the
+moment the other side rewrites or truncates the file, `tail -F` replays the whole history into your
+context. The offset watcher's trade-off is that if the other side
 does rewrite the file to something shorter, that rewrite's content is skipped — losing one message
 beats replaying twenty, and the real fix is for both sides to only ever append with `>>`.
+
+---
+
+## Platform
+
+This skill is written for Linux, where it was developed and tested. The file half of the protocol —
+appending with `>>`, the `noclobber` lock, `scripts/watch-mailbox.sh` — assumes a POSIX shell.
+
+macOS and WSL 2 provide one and should work, but neither has been verified. Native Windows has no
+POSIX shell: `>>` behaves differently, `noclobber` does not exist in PowerShell or `cmd`, and there
+is no watcher for it. Nothing here is supported there, and a port would be a welcome contribution.
+
+The messaging half is unaffected: `ListAgents` and `SendMessage` are Claude Code features and work
+wherever Claude Code does.
 
 ---
 
@@ -227,7 +243,7 @@ and spends the other side's tokens.
 
 ## Specifications at a glance
 
-- Requires Claude Code v2.1.224+ (v2.1.234+ on native Windows); `notify_when_idle` requires v2.1.236+
+- Requires Claude Code v2.1.224+; `notify_when_idle` requires v2.1.236+
   on both sides. Run `/list-agents` (alias `/peers`) to confirm a session has the feature at all.
 - **Same-machine messages are capped at roughly one million characters.** Anything larger is refused
   in the sending session and never reaches the peer.

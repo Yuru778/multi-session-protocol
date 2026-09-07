@@ -60,17 +60,27 @@ git clone https://github.com/Yuru778/multi-session-protocol.git \
 
 ```
 SKILL.md                     協定本體
-scripts/watch-mailbox.sh     信箱監看器，POSIX sh（Linux、macOS、WSL 2）
-scripts/watch-mailbox.ps1    信箱監看器，PowerShell 5.1+（原生 Windows）
+scripts/watch-mailbox.sh     信箱監看器，POSIX sh
 ```
 
-兩支監看器都是 offset 版，所以對方整檔重寫時不會把歷史重播進你的 context。
+監看器是 offset 版，所以對方整檔重寫時不會把歷史重播進你的 context。
 只有在跟收不到 `SendMessage` 的 agent 通訊時才需要它 —— Claude 對 Claude 完全不需要監看行程。
+
+## 平台
+
+**Linux。** 這是它被寫出來、也被實測過的環境。協定的檔案那一半 —— 用 `>>` 追加、`noclobber` 上鎖、
+監看器 —— 都預設你有一個 POSIX shell。
+
+macOS 與 WSL 2 有 POSIX shell，理論上可以跑，但兩者都未經驗證。**原生 Windows 不支援**：
+PowerShell 與 `cmd` 沒有 `noclobber`，也沒有對應的監看器。移植過來會是很受歡迎的貢獻。
+
+訊息那一半不受影響 —— `ListAgents` 與 `SendMessage` 是 Claude Code 的功能，
+Claude Code 跑得動的地方它們就跑得動。
 
 ## 需求
 
-跨 session 訊息需要 Claude Code v2.1.224 以上（原生 Windows 為 v2.1.234），
-`notify_when_idle` 需要雙方都在 v2.1.236 以上。用 `/list-agents` 確認某個 session 有沒有這個功能。
+跨 session 訊息需要 Claude Code v2.1.224 以上，`notify_when_idle` 需要雙方都在 v2.1.236 以上。
+用 `/list-agents` 確認某個 session 有沒有這個功能。
 
 ## 相關作品
 
@@ -93,9 +103,11 @@ scripts/watch-mailbox.ps1    信箱監看器，PowerShell 5.1+（原生 Windows�
 
 歡迎開 issue 與 pull request。特別有幫助的是：
 
-- **平台實測。** `watch-mailbox.sh` 已在 Linux 上以 `sh`、`dash`、`bash` 跑過。
-  `watch-mailbox.ps1` **還沒有在原生 Windows 上實際執行過** —— 你若在那邊試了，
-  回報一句「能不能跑」就是實實在在的貢獻。
+- **Windows 支援。** 目前完全沒有。`noclobber` 在 PowerShell 沒有 shell 層的等價物
+  （對應的原語是 `[System.IO.File]::Open(path, 'CreateNew', ...)`），也沒有對應的監看器。
+  做一份移植，或回報「WSL 2 在實務上就夠用了」，都能補掉這裡最大的缺口。
+- **macOS 驗證。** `watch-mailbox.sh` 只在 Linux 上以 `sh`、`dash`、`bash` 跑過。
+  裡面有一段給 macOS 的 BSD `stat` 退路，但沒有人真的跑過。
 - **值得補進去的坑。** 如果這裡某條規則讓你付出過代價，或你踩到的錯誤不在表上，
   開個 issue 描述發生了什麼。那張表的價值來自夠具體。
 - **勘誤。** 規格速查跟著 Claude Code 的官方行為走，產品一改就會過時。

@@ -20,8 +20,10 @@
 # SendMessage. This is for peers that cannot receive it, such as a non-Claude
 # agent writing into a shared file.
 #
-# Portable POSIX sh: works with macOS's stock /bin/sh and bash 3.2, Linux dash
-# and bash, and busybox. On native Windows use watch-mailbox.ps1 instead.
+# Portable POSIX sh: developed and tested on Linux (sh, dash, bash). It avoids
+# bash 4 features and carries a BSD stat fallback, so macOS and WSL 2 should
+# work, but neither has been verified. Native Windows has no POSIX shell and is
+# not supported.
 
 set -u
 

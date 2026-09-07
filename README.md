@@ -68,18 +68,29 @@ that one. Claude loads it when the situation matches the description.
 
 ```
 SKILL.md                     the protocol itself
-scripts/watch-mailbox.sh     mailbox watcher, POSIX sh (Linux, macOS, WSL 2)
-scripts/watch-mailbox.ps1    mailbox watcher, PowerShell 5.1+ (native Windows)
+scripts/watch-mailbox.sh     mailbox watcher, POSIX sh
 ```
 
-Both watchers are offset-based, so a whole-file rewrite on the other side never replays the history
-into your context. You only need one if you are talking to an agent that cannot receive
-`SendMessage` — Claude-to-Claude needs no watcher process at all.
+The watcher is offset-based, so a whole-file rewrite on the other side never replays the history into
+your context. You only need it if you are talking to an agent that cannot receive `SendMessage` —
+Claude-to-Claude needs no watcher process at all.
+
+## Platform
+
+**Linux.** That is where this was written and tested. The file half of the protocol — appending with
+`>>`, the `noclobber` lock, the watcher — assumes a POSIX shell.
+
+macOS and WSL 2 provide one and should work, but neither has been verified. **Native Windows is not
+supported**: PowerShell and `cmd` have no `noclobber`, and there is no watcher for them. A port is a
+welcome contribution.
+
+The messaging half is unaffected — `ListAgents` and `SendMessage` are Claude Code features and work
+wherever Claude Code does.
 
 ## Requirements
 
-Cross-session messaging needs Claude Code v2.1.224 or later (v2.1.234 on native Windows), and
-`notify_when_idle` needs v2.1.236 on both sides. Run `/list-agents` to check a session.
+Cross-session messaging needs Claude Code v2.1.224 or later, and `notify_when_idle` needs v2.1.236 on
+both sides. Run `/list-agents` to check a session.
 
 ## Prior art
 
@@ -103,9 +114,11 @@ to plain appended files only where nothing official reaches.
 
 Issues and pull requests are welcome. Particularly useful:
 
-- **Platform verification.** `watch-mailbox.sh` has been exercised under `sh`, `dash` and `bash` on
-  Linux. `watch-mailbox.ps1` has **not been run on native Windows** — if you try it there, saying
-  whether it worked is a real contribution.
+- **Windows support.** There is none. `noclobber` has no PowerShell equivalent at the shell level
+  (`[System.IO.File]::Open(path, 'CreateNew', ...)` is the primitive that matches it) and no watcher
+  exists. A port, or a report that WSL 2 is good enough in practice, would close the biggest gap here.
+- **macOS verification.** `watch-mailbox.sh` has been exercised under `sh`, `dash` and `bash` on
+  Linux only. It carries a BSD `stat` fallback for macOS that nobody has run.
 - **Failure modes worth adding.** If a rule here cost you something in practice, or a mistake bit you
   that the table does not list, open an issue describing what happened. The table earns its place by
   being specific.
