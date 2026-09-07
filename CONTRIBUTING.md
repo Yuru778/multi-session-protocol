@@ -56,3 +56,5 @@ history is replayed — that non-replay is the whole reason the script exists.
 ## Commits
 
 Describe what changed and why it was wrong before. No required prefix or format.
+
+**Conduct.** This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md).
