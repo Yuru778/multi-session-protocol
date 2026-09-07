@@ -1,91 +1,74 @@
 # multi-session-protocol
 
-一個 Claude Code skill：**多個 agent session 共用同一台機器時，哪句話該走哪條通道。**
+一個 Claude Code skill，處理**同一台機器上平行運作的 agent session：哪句話該走哪條通道。**
 
 [English](README.md)
 
-Claude Code 有官方的跨 session 訊息（`ListAgents` ／ `SendMessage`），無條件送達並喚醒對方；
-但它沒有「留言但不要吵醒對方」這一級，而不是 Claude Code session 的 agent 根本收不到它。
-
-這個 skill 把兩條通道混起來用：
+官方的跨 session 訊息（`ListAgents` ／ `SendMessage`）送出去一定會叫醒對方。它沒有「留言但不吵醒對方」
+這一級，而不是 Claude Code session 的 agent 根本收不到它。這個 skill 繞開這兩個缺口。
 
 | 要傳的東西 | 走哪條 |
 |---|---|
-| 要對方決定或動手（ASK）、對方正在等的完成通知（DONE） | `SendMessage` |
-| 只是讓對方知道（FYI） | 用 `>>` 追加到共享信箱檔 |
-| 對方在做什麼、會碰哪些檔 | 讀它的狀態檔，不要問 |
+| **ASK** —— 要對方決定或動手 | `SendMessage` |
+| **DONE** —— 完成了對方在等的事 | `SendMessage` |
+| **FYI** —— 讓對方知道，但不該打斷它 | 用 `>>` 追加到共享信箱檔 |
+| 「你在做什麼、會碰哪些檔、到幾點」 | 讀它的狀態檔，不要問 |
 | 占用共享資源（GPU、推理伺服器） | `noclobber` 原子鎖 |
-| 等一件長工作做完 | `notify_when_idle: true` |
-| 跟非 Claude 的 agent 通訊（Codex 等其他 CLI agent） | 檔案信箱 ＋ offset 監看器 |
+| 等一件長工作 | `notify_when_idle: true` |
+| 對象不是 Claude Code（Codex 等 CLI agent） | 檔案信箱 ＋ offset 監看器 |
 
-完整規則、每一列的最小範例、開場檢查清單與常見錯誤都在 [`SKILL.md`](skills/multi-session-protocol/SKILL.md)（內容為英文）。
+完整規則、每一列的最小範例、開場檢查清單與常見錯誤：
+[`SKILL.md`](skills/multi-session-protocol/SKILL.md)（英文）。
 
-非 Claude Code 的 agent 永遠不會載入這個 skill，所以 §7 另外附了一份可以直接貼進
-[`AGENTS.md`](https://agents.md) 的約定（30 多種 agent 會在 session 啟動時讀那個檔），
-以及一件任何約定都解決不了的事：你沒辦法喚醒一個沒有 `SendMessage` 的對象。
+**你換到什麼**
 
-## 這個 skill 幫你換到什麼
-
-- **少花對方的 token。** 每一則訊息都會在對方那邊開一個回合。FYI 改走檔案、讀狀態檔取代問答、
-  用 `notify_when_idle` 訂閱取代輪詢、不回「收到」—— 這幾條拿掉的都是本來就不值得付錢的回合。
-- **不會互相弄壞東西。** 共用的 GPU 或推理伺服器用原子鎖，狀態檔第三行寫明自己的重量級工作跑到幾點，
-  兩個 session 就不會再互相砍掉對方的測試。
-- **零安裝。** 不用 MCP server、不用 broker daemon、不用 `jq`，兩個 Claude session 之間連一個常駐行程
-  都不需要。clone 一個目錄，情境符合時規則會自己載入。
-- **非 Claude Code session 的對象一樣通得到。** 官方訊息看不見它們，協定的檔案那一半可以。
+- **少花對方的回合。** FYI 走檔案、狀態檔取代問答、`notify_when_idle` 取代輪詢、不回「收到」。
+- **不會互相弄壞東西。** 原子鎖，加上重量級工作寫明跑到幾點。
+- **零安裝。** 不用 MCP server、不用 daemon、不用 `jq`，兩個 Claude session 之間連常駐行程都沒有。
+- **通得到官方訊息看不見的對象。**
 
 ## 平行的 session，不是 subagent
 
-subagent 的存在是為了回答生出它的那個 session：跑完一件事、回傳結果、結束。agent team 裡的
-teammate 有自己的 context，但仍然隸屬於生出它的 lead，那個 session 結束時整個 team 也跟著結束。
-這兩種都是「一個 session 擁有這份工作、其他的向它回報」的形狀。
-
-這個 skill 是給另一種形狀的 —— 你自己在各自的終端機裡開的那兩三個 Claude Code session，
-每一個都有自己的任務、自己的權限模式、自己對下一步的判斷。它們是對等的同事而不是工人，
-而且沒有人在統籌它們。它們需要的不是一個指揮者，而是一套共識：什麼事值得打斷對方、
-什麼事只值得留在磁碟上、以及怎麼在不開口問的情況下知道別人在做什麼。
+subagent 回答呼叫它的人然後結束。teammate 隸屬於生出它的 lead。兩者都是「一個 session 擁有這份工作」
+的形狀。這個 skill 假設的是**沒有人在統籌的對等同事** —— 各自有自己的任務、權限模式與下一步判斷 ——
+它們需要的是一套共識，不是一個指揮者。
 
 |  | Subagent | Agent teams | 各自獨立的 session（這個 skill） |
 |---|---|---|---|
-| 誰生出它 | 主 agent，做到一半時 | lead session 生出 teammate | 你，在自己的終端機裡 |
-| 它對誰負責 | 呼叫它的人 —— 回傳結果後結束 | lead 統籌；teammate 之間也能互傳 | 沒有人；每個 session 自己決定下一步 |
+| 誰生出它 | 主 agent，做到一半時 | lead 生出 teammate | 你，在自己的終端機裡 |
+| 對誰負責 | 呼叫它的人，然後結束 | lead；teammate 之間也能互傳 | 沒有人；各自決定下一步 |
 | 生命週期 | 一件任務 | 隨 lead session 結束 | 不依附於任何單一任務 |
-| 權限模式 | 跟隨父層 | 跟隨 lead，生成時就固定 | 每個 session 各自的 |
-| 你怎麼指揮它 | 透過父層 | 在 agent 面板選它，或傳訊息 | 你就坐在它前面 |
-| 怎麼知道對方在做什麼 | 沒辦法 —— 它做完才回報 | 共享任務清單 | 讀它的狀態檔，完全不花對方成本 |
-| 對象不是 Claude Code session | 不行 | 不行 | 可以，走檔案信箱 |
+| 權限模式 | 跟隨父層 | 跟隨 lead，生成時固定 | 每個 session 各自的 |
+| 你怎麼指揮它 | 透過父層 | agent 面板，或傳訊息 | 你就坐在它前面 |
+| 怎麼知道對方在做什麼 | 沒辦法 —— 做完才回報 | 共享任務清單 | 讀它的狀態檔，不花對方成本 |
+| 對象不是 Claude Code | 不行 | 不行 | 可以，走檔案信箱 |
 | 前置設定 | 不用 | 要開實驗旗標 | 不用 |
 
-如果有更輕的形狀合用，就用那個。[Subagent](https://code.claude.com/docs/en/sub-agents)
-適合「只要回報結果的幫手」。[Agent teams](https://code.claude.com/docs/en/agent-teams)
-適合「該由某一個 session 擁有並監督這份工作」的情況 —— 它是實驗性功能、預設關閉
-（`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`），而且一個 team 只屬於建立它的那個 session。
-兩者都沒辦法把非 Claude Code session 的 agent 納進來。這個 skill 從它們停下來的地方開始。
+有更輕的形狀合用就用那個：[subagent](https://code.claude.com/docs/en/sub-agents)
+適合只要回報結果的幫手，[agent teams](https://code.claude.com/docs/en/agent-teams)
+適合該由某個 session 擁有並監督的工作（實驗性、預設關閉 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`、
+一個 team 只屬於建立它的 session）。兩者都納不進非 Claude Code session 的 agent。
 
 ## 安裝
 
-**用 plugin 裝** —— 之後更新也走 Claude Code：
+用 plugin 裝：
 
 ```
 /plugin marketplace add Yuru778/multi-session-protocol
 /plugin install multi-session-protocol@multi-session-protocol
 ```
 
-在 shell 裡是 `claude plugin marketplace add …` 與 `claude plugin install …`，
-要鎖版本就在 marketplace 那行後面加 `@v0.1.0`。
+在 marketplace 那行後面加 `@v0.1.0` 可以鎖版本。在 shell 裡是
+`claude plugin marketplace add …` ／ `claude plugin install …`。
 
-**手動裝**，如果你不想多加一個 marketplace：
+手動裝：
 
 ```bash
 git clone https://github.com/Yuru778/multi-session-protocol.git
 cp -r multi-session-protocol/skills/multi-session-protocol ~/.claude/skills/
 ```
 
-放進 `~/.claude/skills/` 就是每個專案都能用，放進某個專案自己的 `.claude/skills/` 則只在該專案生效。
-兩種方式都一樣，情境符合 description 時 Claude 會自己載入。
-
-**plugin 的 skill 只在 session 啟動時載入**，所以裝完要重開 Claude Code ——
-在裝它的那個 session 裡是叫不出來的。
+**裝完要重開 Claude Code** —— plugin 的 skill 只在 session 啟動時載入，在裝它的那個 session 裡叫不出來。
 
 ## 內容
 
@@ -93,56 +76,45 @@ cp -r multi-session-protocol/skills/multi-session-protocol ~/.claude/skills/
 .claude-plugin/                    plugin 與 marketplace 的 manifest
 skills/multi-session-protocol/
   SKILL.md                         協定本體
-  scripts/watch-mailbox.sh         信箱監看器，POSIX sh
+  scripts/watch-mailbox.sh         offset 版信箱監看器，POSIX sh
 ```
 
-監看器是 offset 版，所以對方整檔重寫時不會把歷史重播進你的 context。
-只有在跟收不到 `SendMessage` 的 agent 通訊時才需要它 —— Claude 對 Claude 完全不需要監看行程。
+對方整檔重寫時，這支監看器不會把歷史重播進你的 context（`tail -F` 會）。
+只有對象收不到 `SendMessage` 時才需要它。
 
 ## 平台
 
-在 **Linux** 上開發與實測。協定大部分不是 Claude Code 的功能就是單純的檔案讀寫，到哪都能跑；
-只有兩個地方需要 POSIX shell。
+需要 Claude Code v2.1.224 以上；`notify_when_idle` 需要雙方都在 v2.1.236 以上。
 
-在原生 Windows 上，訊息（`SendMessage`、`notify_when_idle`）、追加 FYI、狀態檔、`notes/`
-全部都能用。不能用的是：
+| | 狀態 |
+|---|---|
+| **Linux** | 在這上面開發與實測 |
+| **macOS、WSL 2** | 有 POSIX shell，理論上全部可跑 —— 未驗證 |
+| **原生 Windows** | 訊息、FYI 追加、狀態檔、`notes/` 都能用。`noclobber` 鎖與監看器不行：沒有 POSIX shell。`SKILL.md` 有 `FileMode.CreateNew` 的上鎖寫法，但沒隨附也沒人跑過 —— 不要改用「`Test-Path` 檢查再寫入」，那正是這個鎖要避開的 race。另外 PowerShell 5.1 的 `>>` 會寫成 UTF-16LE，要加 `-Encoding utf8`。 |
 
-- **`noclobber` 上鎖。** `noclobber` 是 POSIX shell 的選項，PowerShell 與 `cmd` 都沒有。
-  對應的原語是 `[System.IO.File]::Open(path, 'CreateNew', ...)`，`SKILL.md` 裡有寫法，
-  但沒有隨附也沒有人跑過。**不要**改用「`Test-Path` 檢查再寫入」—— 那正是這個鎖要避開的那個 race。
-- **`skills/multi-session-protocol/scripts/watch-mailbox.sh`**，它需要 POSIX shell。只有在對象是非 Claude 的 agent 時才需要它。
+## 非 Claude 的對象
 
-另外 Windows PowerShell 5.1 的 `>>` 會寫成 UTF-16LE，記得加 `-Encoding utf8`，或改用 PowerShell 7+。
-
-macOS 與 WSL 2 有 POSIX shell，理論上全部都能跑，但兩者都未經驗證。
-
-## 需求
-
-跨 session 訊息需要 Claude Code v2.1.224 以上，`notify_when_idle` 需要雙方都在 v2.1.236 以上。
-用 `/list-agents` 確認某個 session 有沒有這個功能。
+它們永遠不會載入這個 skill。`SKILL.md` §7 附了一份可以直接貼進
+[`AGENTS.md`](https://agents.md) 的約定（30 多種 agent 會在 session 啟動時讀那個檔），
+以及一件任何約定都解決不了的事：**你沒辦法喚醒一個沒有 `SendMessage` 的對象。**
+它要等到某件事讓它去讀那個檔，才會看到你的訊息。
 
 ## 相關作品
 
-有幾個專案在解相鄰的問題。它們各自都做了一套自己的傳輸層。這個 skill 在 Claude 對 Claude 的情況
-不做任何傳輸層 —— 只負責決定訊息走 Claude Code 本來就有的哪一條路 —— 只有在官方管道到不了的地方，
-才退回到單純的追加寫檔。
+以下每一個都自己做了一套傳輸層；這個 skill 是走 Claude Code 本來就有的通道。
 
 - **[claude-code-session-bridge](https://github.com/PatilShreyas/claude-code-session-bridge)** ——
-  檔案信箱 ＋ 幾支 bash 腳本 ＋ 一個教 agent 協定的 skill。它早於官方的跨 session 訊息，
-  以輪詢 JSON inbox/outbox 目錄運作，因此沒有「會喚醒對方」與「不會喚醒對方」的分級。
-- **[agent-peers-mcp](https://github.com/Co-Messi/agent-peers-mcp)** 與性質相近的
+  檔案信箱、腳本與一個 skill。早於官方訊息，以輪詢 JSON 信箱運作，所以沒有喚醒／不喚醒的分級。
+- **[agent-peers-mcp](https://github.com/Co-Messi/agent-peers-mcp)** 與
   **[claude-peers-mcp](https://github.com/jamditis/claude-peers-mcp)** —— MCP server，
-  背後跑一台本機 broker daemon（HTTP + SQLite），用自己的協定取代官方工具。
-  agent-peers 確實有區分喚醒訊號與不打擾的留言，也確實能接到非 Claude 的 CLI agent，
-  是意圖上跟這個 skill 最接近的一個，儘管實作路線完全相反。
-- **[agent-bridge](https://github.com/EthanSK/agent-bridge)** —— 跨機器、走 SSH 的
-  agent harness 之間的點對點訊息。
+  背後跑本機 broker daemon（HTTP + SQLite）取代官方工具。agent-peers 確實有區分喚醒訊號與不打擾的留言，
+  也確實接得到非 Claude 的 CLI agent：意圖上最接近，實作路線相反。
+- **[agent-bridge](https://github.com/EthanSK/agent-bridge)** —— 跨機器、走 SSH 的 agent 之間訊息。
 
 ## 歡迎貢獻
 
-歡迎開 issue 與 pull request，細節見 [CONTRIBUTING.md](CONTRIBUTING.md)（英文）。
-現在最需要補的兩塊：Windows 的上鎖工具與監看器，以及有人能回報
-監看器腳本在 macOS 上到底跑不跑得動。
+見 [CONTRIBUTING.md](CONTRIBUTING.md)（英文）。最需要的：Windows 的上鎖工具與監看器，
+以及有人能回報監看器在 macOS 上到底跑不跑得動。
 
 ## 授權
 
