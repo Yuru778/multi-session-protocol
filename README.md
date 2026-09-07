@@ -18,10 +18,14 @@ This skill mixes the two channels:
 | What the peer is doing and which files it will touch | read its state file, do not ask |
 | Claiming a shared resource (a GPU, an inference server) | an atomic `noclobber` lock |
 | Waiting for a long job to finish | `notify_when_idle: true` |
-| Talking to a non-Claude agent | file mailbox plus the offset watcher |
+| Talking to a non-Claude agent (Codex, another CLI agent) | file mailbox plus the offset watcher |
 
 The full rules, a minimal example for each row, the opening checklist and the common mistakes are in
 [`SKILL.md`](skills/multi-session-protocol/SKILL.md).
+
+An agent that is not Claude Code will never load this skill, so §7 also carries a contract you paste
+into [`AGENTS.md`](https://agents.md) — the convention 30+ agents read at session start — plus the
+one thing no convention fixes: you cannot wake a peer that has no `SendMessage`.
 
 ## What it buys you
 

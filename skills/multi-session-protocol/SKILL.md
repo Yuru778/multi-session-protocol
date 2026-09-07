@@ -1,6 +1,8 @@
 ---
 name: multi-session-protocol
 description: Use when coordinating with another Claude Code session, a background session, or a non-Claude agent (another CLI coding agent, a long-running daemon, a script) on the same machine. Decides which messages travel over official cross-session messaging (ListAgents / SendMessage) and which go through a shared file mailbox, and covers state files, atomic locks, the message format, a replay-free mailbox watcher, and the common mistakes.
+license: MIT
+compatibility: The messaging half needs Claude Code v2.1.224+. The file half needs a POSIX shell and a directory both agents can write. Developed and tested on Linux.
 ---
 
 # Multi-Session Protocol (official messaging + file mailbox)
@@ -171,6 +173,58 @@ moment the other side rewrites or truncates the file, `tail -F` replays the whol
 context. The offset watcher's trade-off is that if the other side
 does rewrite the file to something shorter, that rewrite's content is skipped — losing one message
 beats replaying twenty, and the real fix is for both sides to only ever append with `>>`.
+
+### Getting the other agent to agree to it
+
+It will never load this skill — this is a Claude Code plugin, and the peer is not Claude Code. The
+file half has to be stated somewhere the peer already reads. Three ways, most durable first:
+
+1. **`AGENTS.md`.** An open convention, now governed by the Linux Foundation's Agentic AI Foundation,
+   that 30+ agents read at the start of a session — Codex, Cursor, Gemini CLI, Copilot, Aider and Zed
+   among them. Put the contract below at the root of the directory you share. This is the only option
+   that survives the other agent restarting without anyone re-explaining anything.
+2. **Its own skill loader.** This skill follows the vendor-neutral
+   [Agent Skills specification](https://agentskills.io/specification) — a `SKILL.md` with `name` and
+   `description` frontmatter — so an agent that reads that format can load this directory unmodified.
+   Point it at the skill directory.
+3. **Say it once in a prompt.** "Read `<path>/SKILL.md` and follow the file half." Cheapest, and it
+   dies with that agent's context.
+
+Give the peer **only the file half**. It cannot call `SendMessage`, so the routing table collapses
+for it: everything goes to the mailbox, ASK and DONE included.
+
+### The contract to paste
+
+```markdown
+## Mailbox protocol
+
+You share `<mailbox>` with other agents.
+
+- One line per message, always appended with `>>`. Never rewrite the file: the other side watches it,
+  and a rewrite replays the entire history into its context.
+- Format: `[<me> HH:MM] ASK|DONE|FYI <one sentence>`. ASK = you need a decision or an action.
+  DONE = you finished something the other side is waiting on. FYI = they should know, no reply
+  expected.
+- Write to `<mailbox>/<me>-to-<peer>.md`. Read `<mailbox>/<peer>-to-<me>.md`.
+- Never reply "got it". A working channel does not need confirming.
+- Keep `<mailbox>/state-<me>.md` at three lines: what you are doing, which files you will touch, and
+  until when any heavy job of yours runs. To learn the same about a peer, read its state file rather
+  than asking.
+- Before taking a shared resource, lock it atomically. Never check-then-write:
+  `( set -o noclobber; echo "<me> until=HH:MM reason=..." > <mailbox>/<res>.lock ) 2>/dev/null || echo busy`
+  Release with `rm -f`, never with `: >`.
+- Long content goes to `<mailbox>/notes/<topic>.md`; the message carries one line and that path.
+```
+
+Fill in `<mailbox>`, `<me>` and `<peer>` before pasting — the peer has no way to resolve them.
+
+### What you cannot do
+
+**You cannot wake it.** `SendMessage` reaches Claude Code sessions only and has no portable
+equivalent. An arbitrary CLI agent sees your line the next time something makes it read the file,
+which for an interactive agent means its human's next turn. Plan for latency you do not control:
+write ASK lines that are still accurate hours later, and never block on one silently — tell your own
+human you are blocked.
 
 ---
 

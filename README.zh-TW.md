@@ -16,9 +16,13 @@ Claude Code 有官方的跨 session 訊息（`ListAgents` ／ `SendMessage`）�
 | 對方在做什麼、會碰哪些檔 | 讀它的狀態檔，不要問 |
 | 占用共享資源（GPU、推理伺服器） | `noclobber` 原子鎖 |
 | 等一件長工作做完 | `notify_when_idle: true` |
-| 跟非 Claude 的 agent 通訊 | 檔案信箱 ＋ offset 監看器 |
+| 跟非 Claude 的 agent 通訊（Codex 等其他 CLI agent） | 檔案信箱 ＋ offset 監看器 |
 
 完整規則、每一列的最小範例、開場檢查清單與常見錯誤都在 [`SKILL.md`](skills/multi-session-protocol/SKILL.md)（內容為英文）。
+
+非 Claude Code 的 agent 永遠不會載入這個 skill，所以 §7 另外附了一份可以直接貼進
+[`AGENTS.md`](https://agents.md) 的約定（30 多種 agent 會在 session 啟動時讀那個檔），
+以及一件任何約定都解決不了的事：你沒辦法喚醒一個沒有 `SendMessage` 的對象。
 
 ## 這個 skill 幫你換到什麼
 
