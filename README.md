@@ -77,15 +77,21 @@ Claude-to-Claude needs no watcher process at all.
 
 ## Platform
 
-**Linux.** That is where this was written and tested. The file half of the protocol — appending with
-`>>`, the `noclobber` lock, the watcher — assumes a POSIX shell.
+Developed and tested on **Linux**. Most of the protocol is either a Claude Code feature or plain file
+I/O and travels anywhere; two pieces need a POSIX shell.
 
-macOS and WSL 2 provide one and should work, but neither has been verified. **Native Windows is not
-supported**: PowerShell and `cmd` have no `noclobber`, and there is no watcher for them. A port is a
-welcome contribution.
+On native Windows, messaging (`SendMessage`, `notify_when_idle`), appending FYI, state files and
+`notes/` all work. What does not:
 
-The messaging half is unaffected — `ListAgents` and `SendMessage` are Claude Code features and work
-wherever Claude Code does.
+- **The `noclobber` lock.** `noclobber` is a POSIX shell option and PowerShell and `cmd` have none.
+  `[System.IO.File]::Open(path, 'CreateNew', ...)` is the primitive that matches it — `SKILL.md`
+  carries the recipe, unshipped and unrun. Do not substitute `Test-Path` then write: that is the same
+  race the lock exists to avoid.
+- **`scripts/watch-mailbox.sh`**, which needs a POSIX shell. You only need it for a non-Claude peer.
+
+Windows PowerShell 5.1 also writes UTF-16LE through `>>`; pass `-Encoding utf8` or use PowerShell 7+.
+
+macOS and WSL 2 have a POSIX shell, so everything should work; neither has been verified.
 
 ## Requirements
 
@@ -114,9 +120,9 @@ to plain appended files only where nothing official reaches.
 
 Issues and pull requests are welcome. Particularly useful:
 
-- **Windows support.** There is none. `noclobber` has no PowerShell equivalent at the shell level
-  (`[System.IO.File]::Open(path, 'CreateNew', ...)` is the primitive that matches it) and no watcher
-  exists. A port, or a report that WSL 2 is good enough in practice, would close the biggest gap here.
+- **Windows support.** Two gaps, both in the file half: no lock helper and no watcher. `SKILL.md`
+  sketches the `FileMode.CreateNew` lock but nobody has shipped or run it. A port, or a report that
+  WSL 2 is good enough in practice, would close the biggest gap here.
 - **macOS verification.** `watch-mailbox.sh` has been exercised under `sh`, `dash` and `bash` on
   Linux only. It carries a BSD `stat` fallback for macOS that nobody has run.
 - **Failure modes worth adding.** If a rule here cost you something in practice, or a mistake bit you

@@ -22,8 +22,8 @@
 #
 # Portable POSIX sh: developed and tested on Linux (sh, dash, bash). It avoids
 # bash 4 features and carries a BSD stat fallback, so macOS and WSL 2 should
-# work, but neither has been verified. Native Windows has no POSIX shell and is
-# not supported.
+# work, but neither has been verified. Native Windows has no POSIX shell, so
+# this script does not run there; the rest of the protocol mostly does.
 
 set -u
 

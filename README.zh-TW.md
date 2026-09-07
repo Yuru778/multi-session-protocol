@@ -68,14 +68,20 @@ scripts/watch-mailbox.sh     信箱監看器，POSIX sh
 
 ## 平台
 
-**Linux。** 這是它被寫出來、也被實測過的環境。協定的檔案那一半 —— 用 `>>` 追加、`noclobber` 上鎖、
-監看器 —— 都預設你有一個 POSIX shell。
+在 **Linux** 上開發與實測。協定大部分不是 Claude Code 的功能就是單純的檔案讀寫，到哪都能跑；
+只有兩個地方需要 POSIX shell。
 
-macOS 與 WSL 2 有 POSIX shell，理論上可以跑，但兩者都未經驗證。**原生 Windows 不支援**：
-PowerShell 與 `cmd` 沒有 `noclobber`，也沒有對應的監看器。移植過來會是很受歡迎的貢獻。
+在原生 Windows 上，訊息（`SendMessage`、`notify_when_idle`）、追加 FYI、狀態檔、`notes/`
+全部都能用。不能用的是：
 
-訊息那一半不受影響 —— `ListAgents` 與 `SendMessage` 是 Claude Code 的功能，
-Claude Code 跑得動的地方它們就跑得動。
+- **`noclobber` 上鎖。** `noclobber` 是 POSIX shell 的選項，PowerShell 與 `cmd` 都沒有。
+  對應的原語是 `[System.IO.File]::Open(path, 'CreateNew', ...)`，`SKILL.md` 裡有寫法，
+  但沒有隨附也沒有人跑過。**不要**改用「`Test-Path` 檢查再寫入」—— 那正是這個鎖要避開的那個 race。
+- **`scripts/watch-mailbox.sh`**，它需要 POSIX shell。只有在對象是非 Claude 的 agent 時才需要它。
+
+另外 Windows PowerShell 5.1 的 `>>` 會寫成 UTF-16LE，記得加 `-Encoding utf8`，或改用 PowerShell 7+。
+
+macOS 與 WSL 2 有 POSIX shell，理論上全部都能跑，但兩者都未經驗證。
 
 ## 需求
 
@@ -103,8 +109,8 @@ Claude Code 跑得動的地方它們就跑得動。
 
 歡迎開 issue 與 pull request。特別有幫助的是：
 
-- **Windows 支援。** 目前完全沒有。`noclobber` 在 PowerShell 沒有 shell 層的等價物
-  （對應的原語是 `[System.IO.File]::Open(path, 'CreateNew', ...)`），也沒有對應的監看器。
+- **Windows 支援。** 缺兩塊，都在協定的檔案那一半：沒有上鎖的輔助工具，也沒有監看器。
+  `SKILL.md` 有 `FileMode.CreateNew` 的上鎖寫法，但沒有隨附也沒有人跑過。
   做一份移植，或回報「WSL 2 在實務上就夠用了」，都能補掉這裡最大的缺口。
 - **macOS 驗證。** `watch-mailbox.sh` 只在 Linux 上以 `sh`、`dash`、`bash` 跑過。
   裡面有一段給 macOS 的 BSD `stat` 退路，但沒有人真的跑過。

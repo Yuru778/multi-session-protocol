@@ -176,15 +176,40 @@ beats replaying twenty, and the real fix is for both sides to only ever append w
 
 ## Platform
 
-This skill is written for Linux, where it was developed and tested. The file half of the protocol —
-appending with `>>`, the `noclobber` lock, `scripts/watch-mailbox.sh` — assumes a POSIX shell.
+Developed and tested on Linux. Two pieces need a POSIX shell; everything else is either a Claude Code
+feature or plain file I/O, and travels.
 
-macOS and WSL 2 provide one and should work, but neither has been verified. Native Windows has no
-POSIX shell: `>>` behaves differently, `noclobber` does not exist in PowerShell or `cmd`, and there
-is no watcher for it. Nothing here is supported there, and a port would be a welcome contribution.
+| Rule | Native Windows (PowerShell / `cmd`) |
+|---|---|
+| ASK / DONE over `SendMessage`, `notify_when_idle` | works — Claude Code features, unaffected by the shell |
+| FYI appended to the mailbox | works, but pass `-Encoding utf8` (below) |
+| Reading and writing `state-*.md`, `notes/` | works — ordinary file I/O |
+| The `noclobber` lock (§4) | **no equivalent.** `noclobber` is a POSIX shell option; PowerShell and `cmd` have none |
+| `scripts/watch-mailbox.sh` | **needs a POSIX shell.** Only required for a non-Claude peer (§7) |
 
-The messaging half is unaffected: `ListAgents` and `SendMessage` are Claude Code features and work
-wherever Claude Code does.
+**The lock is the real gap.** Do not fall back to "test, then write" — `Test-Path` followed by a
+write is the PowerShell spelling of the `cat`-then-`echo` race in §4, and loses locks the same way.
+The primitive that matches `noclobber` is `FileMode.CreateNew`, which fails at the filesystem level
+when the file exists:
+
+```powershell
+try {
+    $fs = [System.IO.File]::Open($lock, 'CreateNew', 'Write', 'None')
+    $sw = New-Object System.IO.StreamWriter($fs)
+    $sw.WriteLine("me until=16:40 reason=benchmark run")
+    $sw.Dispose()
+} catch [System.IO.IOException] {
+    "already held by: $(Get-Content -Raw $lock)"
+}
+```
+
+Release with `Remove-Item -Force`. This is not shipped or run by anyone — see Contributing.
+
+**Encoding.** Windows PowerShell 5.1 writes UTF-16LE through `>>` and ASCII through `Add-Content` by
+default, either of which corrupts a mailbox the other side reads as UTF-8. Pass `-Encoding utf8`, or
+use PowerShell 7+, which defaults to UTF-8 without a BOM.
+
+macOS and WSL 2 have a POSIX shell, so everything should work there; neither has been verified.
 
 ---
 
