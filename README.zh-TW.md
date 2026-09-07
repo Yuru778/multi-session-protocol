@@ -18,7 +18,7 @@ Claude Code 有官方的跨 session 訊息（`ListAgents` ／ `SendMessage`）�
 | 等一件長工作做完 | `notify_when_idle: true` |
 | 跟非 Claude 的 agent 通訊 | 檔案信箱 ＋ offset 監看器 |
 
-完整規則、每一列的最小範例、開場檢查清單與常見錯誤都在 [`SKILL.md`](SKILL.md)（內容為英文）。
+完整規則、每一列的最小範例、開場檢查清單與常見錯誤都在 [`SKILL.md`](skills/multi-session-protocol/SKILL.md)（內容為英文）。
 
 ## 這個 skill 幫你換到什麼
 
@@ -48,19 +48,36 @@ Claude Code 有官方的跨 session 訊息（`ListAgents` ／ `SendMessage`）�
 
 ## 安裝
 
-```bash
-git clone https://github.com/Yuru778/multi-session-protocol.git \
-  ~/.claude/skills/multi-session-protocol
+**用 plugin 裝** —— 之後更新也走 Claude Code：
+
+```
+/plugin marketplace add Yuru778/multi-session-protocol
+/plugin install multi-session-protocol@multi-session-protocol
 ```
 
-放進 `~/.claude/skills/` 就是全域可用，放進某個專案的 `.claude/skills/` 則只在該專案生效。
-情境符合 description 時 Claude 會自己載入。
+在 shell 裡是 `claude plugin marketplace add …` 與 `claude plugin install …`，
+要鎖版本就在 marketplace 那行後面加 `@v0.1.0`。
+
+**手動裝**，如果你不想多加一個 marketplace：
+
+```bash
+git clone https://github.com/Yuru778/multi-session-protocol.git
+cp -r multi-session-protocol/skills/multi-session-protocol ~/.claude/skills/
+```
+
+放進 `~/.claude/skills/` 就是每個專案都能用，放進某個專案自己的 `.claude/skills/` 則只在該專案生效。
+兩種方式都一樣，情境符合 description 時 Claude 會自己載入。
+
+**plugin 的 skill 只在 session 啟動時載入**，所以裝完要重開 Claude Code ——
+在裝它的那個 session 裡是叫不出來的。
 
 ## 內容
 
 ```
-SKILL.md                     協定本體
-scripts/watch-mailbox.sh     信箱監看器，POSIX sh
+.claude-plugin/                    plugin 與 marketplace 的 manifest
+skills/multi-session-protocol/
+  SKILL.md                         協定本體
+  scripts/watch-mailbox.sh         信箱監看器，POSIX sh
 ```
 
 監看器是 offset 版，所以對方整檔重寫時不會把歷史重播進你的 context。
@@ -77,7 +94,7 @@ scripts/watch-mailbox.sh     信箱監看器，POSIX sh
 - **`noclobber` 上鎖。** `noclobber` 是 POSIX shell 的選項，PowerShell 與 `cmd` 都沒有。
   對應的原語是 `[System.IO.File]::Open(path, 'CreateNew', ...)`，`SKILL.md` 裡有寫法，
   但沒有隨附也沒有人跑過。**不要**改用「`Test-Path` 檢查再寫入」—— 那正是這個鎖要避開的那個 race。
-- **`scripts/watch-mailbox.sh`**，它需要 POSIX shell。只有在對象是非 Claude 的 agent 時才需要它。
+- **`skills/multi-session-protocol/scripts/watch-mailbox.sh`**，它需要 POSIX shell。只有在對象是非 Claude 的 agent 時才需要它。
 
 另外 Windows PowerShell 5.1 的 `>>` 會寫成 UTF-16LE，記得加 `-Encoding utf8`，或改用 PowerShell 7+。
 
@@ -109,7 +126,7 @@ macOS 與 WSL 2 有 POSIX shell，理論上全部都能跑，但兩者都未經�
 
 歡迎開 issue 與 pull request，細節見 [CONTRIBUTING.md](CONTRIBUTING.md)（英文）。
 現在最需要補的兩塊：Windows 的上鎖工具與監看器，以及有人能回報
-`scripts/watch-mailbox.sh` 在 macOS 上到底跑不跑得動。
+監看器腳本在 macOS 上到底跑不跑得動。
 
 ## 授權
 

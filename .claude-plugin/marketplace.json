@@ -1,0 +1,17 @@
+{
+  "name": "multi-session-protocol",
+  "owner": {
+    "name": "Yuru778",
+    "url": "https://github.com/Yuru778"
+  },
+  "description": "A skill for coordinating parallel Claude Code sessions on one machine.",
+  "plugins": [
+    {
+      "name": "multi-session-protocol",
+      "source": "./",
+      "description": "Teaches an agent which message goes over SendMessage and which goes into a shared file mailbox, plus state files, atomic locks and a replay-free mailbox watcher.",
+      "license": "MIT",
+      "category": "workflow"
+    }
+  ]
+}

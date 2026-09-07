@@ -21,7 +21,7 @@ This skill mixes the two channels:
 | Talking to a non-Claude agent | file mailbox plus the offset watcher |
 
 The full rules, a minimal example for each row, the opening checklist and the common mistakes are in
-[`SKILL.md`](SKILL.md).
+[`SKILL.md`](skills/multi-session-protocol/SKILL.md).
 
 ## What it buys you
 
@@ -56,19 +56,36 @@ spawned, and peers that cannot receive `SendMessage` at all.
 
 ## Install
 
-```bash
-git clone https://github.com/Yuru778/multi-session-protocol.git \
-  ~/.claude/skills/multi-session-protocol
+**As a plugin** — installs and updates through Claude Code:
+
+```
+/plugin marketplace add Yuru778/multi-session-protocol
+/plugin install multi-session-protocol@multi-session-protocol
 ```
 
-Put it under `~/.claude/skills/` for every project, or under a project's `.claude/skills/` for just
-that one. Claude loads it when the situation matches the description.
+The same two steps work from a shell with `claude plugin marketplace add …` and
+`claude plugin install …`. Pin a version with `@v0.1.0` on the marketplace line.
+
+**By hand**, if you would rather not add a marketplace:
+
+```bash
+git clone https://github.com/Yuru778/multi-session-protocol.git
+cp -r multi-session-protocol/skills/multi-session-protocol ~/.claude/skills/
+```
+
+`~/.claude/skills/` makes it available in every project; a project's own `.claude/skills/` scopes it
+to that one. Either way, Claude loads it when the situation matches the description.
+
+**Plugin skills load at session start**, so restart Claude Code after installing — a freshly
+installed skill will not resolve in the session that installed it.
 
 ## Contents
 
 ```
-SKILL.md                     the protocol itself
-scripts/watch-mailbox.sh     mailbox watcher, POSIX sh
+.claude-plugin/                    plugin and marketplace manifests
+skills/multi-session-protocol/
+  SKILL.md                         the protocol itself
+  scripts/watch-mailbox.sh         mailbox watcher, POSIX sh
 ```
 
 The watcher is offset-based, so a whole-file rewrite on the other side never replays the history into
@@ -87,7 +104,7 @@ On native Windows, messaging (`SendMessage`, `notify_when_idle`), appending FYI,
   `[System.IO.File]::Open(path, 'CreateNew', ...)` is the primitive that matches it — `SKILL.md`
   carries the recipe, unshipped and unrun. Do not substitute `Test-Path` then write: that is the same
   race the lock exists to avoid.
-- **`scripts/watch-mailbox.sh`**, which needs a POSIX shell. You only need it for a non-Claude peer.
+- **`skills/multi-session-protocol/scripts/watch-mailbox.sh`**, which needs a POSIX shell. You only need it for a non-Claude peer.
 
 Windows PowerShell 5.1 also writes UTF-16LE through `>>`; pass `-Encoding utf8` or use PowerShell 7+.
 
@@ -120,7 +137,7 @@ to plain appended files only where nothing official reaches.
 
 Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). The two gaps that
 help most right now: a Windows lock helper and watcher, and anyone who can say whether
-`scripts/watch-mailbox.sh` actually runs on macOS.
+the watcher script actually runs on macOS.
 
 ## License
 

@@ -1,7 +1,7 @@
 # Contributing
 
 Issues and pull requests are welcome. This is a small repository — one `SKILL.md`, one script, two
-READMEs — so there is no process to learn beyond what is below.
+READMEs and two manifests — so there is no process to learn beyond what is below.
 
 ## What helps most
 
@@ -10,7 +10,7 @@ watcher. `SKILL.md` sketches the `FileMode.CreateNew` lock that matches `noclobb
 shipped or run it. A port closes the bigger of the two. So does a report that WSL 2 is good enough in
 practice — that is a real answer, not a consolation prize.
 
-**macOS verification.** `scripts/watch-mailbox.sh` has been exercised under `sh`, `dash` and `bash`
+**macOS verification.** `skills/multi-session-protocol/scripts/watch-mailbox.sh` has been exercised under `sh`, `dash` and `bash`
 on Linux only. It avoids bash 4 features and carries a BSD `stat` fallback for macOS, and neither has
 been run on a Mac. Saying whether it works is a contribution; so is a patch if it does not.
 
@@ -35,9 +35,8 @@ order.
 there. "Should work, unverified" is an acceptable and useful statement in this repository — an
 unmarked claim that turns out to be untested is not.
 
-**Shell portability.** `scripts/watch-mailbox.sh` targets POSIX `sh`. No bash arrays, no
-`declare -A`, no GNU-only flags without a BSD fallback. Check with `sh -n`, and run it under `sh`,
-`dash` and `bash` if you have them.
+**Shell portability.** The watcher targets POSIX `sh`. No bash arrays, no
+`declare -A`, no GNU-only flags without a BSD fallback. Check with `sh -n skills/multi-session-protocol/scripts/watch-mailbox.sh`, and run it under `sh`, `dash` and `bash` if you have them.
 
 ## Testing the watcher
 
@@ -45,7 +44,7 @@ There is no test suite. To exercise the watcher by hand:
 
 ```sh
 : > mb.md
-./scripts/watch-mailbox.sh mb.md &
+skills/multi-session-protocol/scripts/watch-mailbox.sh mb.md &
 echo "[peer 10:00] FYI should be filtered out" >> mb.md
 echo "[peer 10:01] ASK should appear"          >> mb.md
 ```

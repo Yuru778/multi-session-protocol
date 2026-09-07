@@ -1,0 +1,12 @@
+{
+  "name": "multi-session-protocol",
+  "version": "0.1.0",
+  "description": "Routes messages between parallel Claude Code sessions on one machine: official cross-session messaging for what should wake a peer, a shared file mailbox for what should not.",
+  "author": {
+    "name": "Yuru778"
+  },
+  "repository": "https://github.com/Yuru778/multi-session-protocol",
+  "homepage": "https://github.com/Yuru778/multi-session-protocol",
+  "license": "MIT",
+  "keywords": ["claude-code", "multi-agent", "agent-coordination", "ipc"]
+}

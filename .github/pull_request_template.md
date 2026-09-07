@@ -11,4 +11,4 @@
 
 - [ ] Generic — no project names, personal paths, or real session names; `<me>` / `<peer>` / `<mailbox>`
 - [ ] `README.md` and `README.zh-TW.md` both updated, if either was
-- [ ] `sh -n scripts/watch-mailbox.sh` passes, if the script changed
+- [ ] `sh -n skills/multi-session-protocol/scripts/watch-mailbox.sh` passes, if the script changed
