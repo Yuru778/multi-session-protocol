@@ -23,6 +23,20 @@ This skill mixes the two channels:
 The full rules, a minimal example for each row, the opening checklist and the common mistakes are in
 [`SKILL.md`](SKILL.md).
 
+## What it buys you
+
+- **Fewer tokens spent on the other session.** Every message starts a turn over there. Routing FYI
+  into a file, reading a state file instead of asking, subscribing with `notify_when_idle` instead of
+  polling, and never replying "got it" all remove turns that were never worth paying for.
+- **Nobody's work gets clobbered.** An atomic lock for the shared GPU or inference server, and a
+  state-file line saying how long your heavy job runs, so two sessions stop killing each other's test
+  runs.
+- **Nothing to install.** No MCP server, no broker daemon, no `jq`, no background process at all
+  between two Claude sessions. Clone one directory and the routing rules load themselves when the
+  situation matches.
+- **Peers that are not Claude Code sessions still reach you.** Official messaging cannot see them;
+  the file half of the protocol can.
+
 ## When not to use this
 
 This skill is for **independent sessions you start and steer yourself**, in separate terminals, plus
@@ -85,3 +99,23 @@ to plain appended files only where nothing official reaches.
 - **[agent-bridge](https://github.com/EthanSK/agent-bridge)** — peer-to-peer messaging between agent
   harnesses across machines, over SSH.
 
+## Contributing
+
+Issues and pull requests are welcome. Particularly useful:
+
+- **Platform verification.** `watch-mailbox.sh` has been exercised under `sh`, `dash` and `bash` on
+  Linux. `watch-mailbox.ps1` has **not been run on native Windows** — if you try it there, saying
+  whether it worked is a real contribution.
+- **Failure modes worth adding.** If a rule here cost you something in practice, or a mistake bit you
+  that the table does not list, open an issue describing what happened. The table earns its place by
+  being specific.
+- **Corrections.** The specification summary tracks Claude Code's documented behavior and will drift
+  as the product changes. Point at the version that broke a claim and it gets fixed.
+
+Keep the skill generic: no project names, no personal paths, `<me>` / `<peer>` / `<mailbox>`
+throughout. `SKILL.md` and the scripts are English-only; `README.zh-TW.md` mirrors `README.md`, so
+changes to one belong in the other.
+
+## License
+
+[MIT](LICENSE) © Yuru778
