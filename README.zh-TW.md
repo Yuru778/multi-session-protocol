@@ -30,21 +30,33 @@ Claude Code 有官方的跨 session 訊息（`ListAgents` ／ `SendMessage`）�
   都不需要。clone 一個目錄，情境符合時規則會自己載入。
 - **非 Claude Code session 的對象一樣通得到。** 官方訊息看不見它們，協定的檔案那一半可以。
 
-## 什麼時候不該用這個
+## 平行的 session，不是 subagent
 
-這個 skill 是給**你自己在不同 terminal 開的、各自獨立的 session**，以及根本不是 Claude Code session
-的 agent 用的。其他形狀有兩個更輕的選項：
+subagent 的存在是為了回答生出它的那個 session：跑完一件事、回傳結果、結束。agent team 裡的
+teammate 有自己的 context，但仍然隸屬於生出它的 lead，那個 session 結束時整個 team 也跟著結束。
+這兩種都是「一個 session 擁有這份工作、其他的向它回報」的形狀。
 
-- **[Subagent](https://code.claude.com/docs/en/sub-agents)** 在單一 session 內運作，做完把結果回傳給呼叫者。
-  你要的只是一個幫手而不是對等的同事時，用它。
-- **[Agent teams](https://code.claude.com/docs/en/agent-teams)** 是官方做法：由一個 lead session
-  spawn 出 teammate 並負責統籌，內建共享任務清單、每個 agent 各自的信箱、搶任務用 file lock、
-  閒置自動通知。該由某一個 session 統籌時，用它。但它是實驗性功能、預設關閉
-  （`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`），一個 team 只屬於建立它的那個 session，
-  而且沒辦法把非 Claude Code session 的 agent 納進來。
+這個 skill 是給另一種形狀的 —— 你自己在各自的終端機裡開的那兩三個 Claude Code session，
+每一個都有自己的任務、自己的權限模式、自己對下一步的判斷。它們是對等的同事而不是工人，
+而且沒有人在統籌它們。它們需要的不是一個指揮者，而是一套共識：什麼事值得打斷對方、
+什麼事只值得留在磁碟上、以及怎麼在不開口問的情況下知道別人在做什麼。
 
-合用 team 的工作就用 team。這個 skill 從 team 停下來的地方開始：**沒有人 spawn 出來的對等 session**，
-以及**根本收不到 `SendMessage` 的對象**。
+|  | Subagent | Agent teams | 各自獨立的 session（這個 skill） |
+|---|---|---|---|
+| 誰生出它 | 主 agent，做到一半時 | lead session 生出 teammate | 你，在自己的終端機裡 |
+| 它對誰負責 | 呼叫它的人 —— 回傳結果後結束 | lead 統籌；teammate 之間也能互傳 | 沒有人；每個 session 自己決定下一步 |
+| 生命週期 | 一件任務 | 隨 lead session 結束 | 不依附於任何單一任務 |
+| 權限模式 | 跟隨父層 | 跟隨 lead，生成時就固定 | 每個 session 各自的 |
+| 你怎麼指揮它 | 透過父層 | 在 agent 面板選它，或傳訊息 | 你就坐在它前面 |
+| 怎麼知道對方在做什麼 | 沒辦法 —— 它做完才回報 | 共享任務清單 | 讀它的狀態檔，完全不花對方成本 |
+| 對象不是 Claude Code session | 不行 | 不行 | 可以，走檔案信箱 |
+| 前置設定 | 不用 | 要開實驗旗標 | 不用 |
+
+如果有更輕的形狀合用，就用那個。[Subagent](https://code.claude.com/docs/en/sub-agents)
+適合「只要回報結果的幫手」。[Agent teams](https://code.claude.com/docs/en/agent-teams)
+適合「該由某一個 session 擁有並監督這份工作」的情況 —— 它是實驗性功能、預設關閉
+（`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`），而且一個 team 只屬於建立它的那個 session。
+兩者都沒辦法把非 Claude Code session 的 agent 納進來。這個 skill 從它們停下來的地方開始。
 
 ## 安裝
 

@@ -37,22 +37,36 @@ The full rules, a minimal example for each row, the opening checklist and the co
 - **Peers that are not Claude Code sessions still reach you.** Official messaging cannot see them;
   the file half of the protocol can.
 
-## When not to use this
+## Parallel sessions, not subagents
 
-This skill is for **independent sessions you start and steer yourself**, in separate terminals, plus
-agents that are not Claude Code sessions at all. Two lighter options cover the other shapes:
+A subagent exists to answer the session that spawned it: it runs one task, returns a result, and
+ends. A teammate in an agent team has its own context window but still belongs to the lead that
+spawned it, and the team ends when that session does. Both are shapes where one session owns the
+work and the others report into it.
 
-- **[Subagents](https://code.claude.com/docs/en/sub-agents)** work inside a single session and report
-  their result back to the caller. Use them when you just need a helper, not a peer.
-- **[Agent teams](https://code.claude.com/docs/en/agent-teams)** are the official way for one lead
-  session to spawn and supervise teammates, with a shared task list, per-agent mailboxes,
-  file-locked task claiming and automatic idle notifications. Use them when one session should own
-  the coordination. They are experimental and off by default
-  (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`), a team is scoped to the session that created it, and a
-  team cannot include an agent that is not a Claude Code session.
+This skill is for the other shape — the two or three Claude Code sessions you started yourself, in
+their own terminals, each with its own task, its own permission mode, and its own idea of what to do
+next. They are peers, not workers, and no one is coordinating them. What they need is not an
+orchestrator but a convention: what is worth interrupting a peer for, what is worth only leaving on
+disk, and how to find out what someone else is doing without asking them.
 
-If a team fits your work, use the team. This skill starts where teams stop: peers that no one
-spawned, and peers that cannot receive `SendMessage` at all.
+|  | Subagents | Agent teams | Independent sessions (this skill) |
+|---|---|---|---|
+| Who starts it | the main agent, mid-task | a lead session spawns teammates | you, in your own terminal |
+| Who it answers to | its caller — returns a result, then ends | the lead coordinates; teammates also message each other | nobody; each session picks its own next move |
+| Lifetime | one task | ends with the lead session | independent of any one task |
+| Permission mode | the parent's | the lead's, fixed at spawn | each session's own |
+| How you steer it | through the parent | select it in the agent panel, or message it | you sit at it |
+| Finding out what a peer is doing | you cannot — it reports when finished | shared task list | read its state file, costing the peer nothing |
+| A peer that is not a Claude Code session | no | no | yes, through the file mailbox |
+| Setup | none | experimental flag | none |
+
+If a lighter shape fits the work, use it. [Subagents](https://code.claude.com/docs/en/sub-agents)
+are right for a helper that only has to report back.
+[Agent teams](https://code.claude.com/docs/en/agent-teams) are right when one session should own and
+supervise the work — they are experimental and off by default
+(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`), and a team is scoped to the session that created it.
+Neither can include an agent that is not a Claude Code session. This skill starts where both stop.
 
 ## Install
 
