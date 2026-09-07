@@ -118,22 +118,9 @@ to plain appended files only where nothing official reaches.
 
 ## Contributing
 
-Issues and pull requests are welcome. Particularly useful:
-
-- **Windows support.** Two gaps, both in the file half: no lock helper and no watcher. `SKILL.md`
-  sketches the `FileMode.CreateNew` lock but nobody has shipped or run it. A port, or a report that
-  WSL 2 is good enough in practice, would close the biggest gap here.
-- **macOS verification.** `watch-mailbox.sh` has been exercised under `sh`, `dash` and `bash` on
-  Linux only. It carries a BSD `stat` fallback for macOS that nobody has run.
-- **Failure modes worth adding.** If a rule here cost you something in practice, or a mistake bit you
-  that the table does not list, open an issue describing what happened. The table earns its place by
-  being specific.
-- **Corrections.** The specification summary tracks Claude Code's documented behavior and will drift
-  as the product changes. Point at the version that broke a claim and it gets fixed.
-
-Keep the skill generic: no project names, no personal paths, `<me>` / `<peer>` / `<mailbox>`
-throughout. `SKILL.md` and the scripts are English-only; `README.zh-TW.md` mirrors `README.md`, so
-changes to one belong in the other.
+Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). The two gaps that
+help most right now: a Windows lock helper and watcher, and anyone who can say whether
+`scripts/watch-mailbox.sh` actually runs on macOS.
 
 ## License
 

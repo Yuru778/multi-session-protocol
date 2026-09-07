@@ -1,0 +1,57 @@
+name: Platform support or verification
+description: Report whether the file half runs on your platform, or offer a port
+labels: ["platform"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Two things are useful here: a **port** of what is missing, or a **report** that you ran the
+        existing pieces somewhere they had never been run. A report is a real contribution — most of
+        this repository's platform claims are unverified, and saying "it worked" removes one.
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - macOS
+        - Native Windows (PowerShell)
+        - Native Windows (cmd)
+        - WSL 2
+        - Linux (a distro or shell not yet covered)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: shell
+    attributes:
+      label: Shell and version
+      description: e.g. "zsh 5.9, /bin/sh on macOS 15", "PowerShell 7.4", "dash on Alpine"
+    validations:
+      required: true
+  - type: checkboxes
+    id: pieces
+    attributes:
+      label: Which pieces did you exercise?
+      options:
+        - label: "`scripts/watch-mailbox.sh` — appended lines print, FYI is filtered"
+        - label: "`scripts/watch-mailbox.sh` — a shorter rewrite does NOT replay history"
+        - label: "The `noclobber` lock (SKILL.md §4), including the second holder being refused"
+        - label: "Appending FYI with `>>`, read back correctly as UTF-8 by the other side"
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Outcome
+      options:
+        - Worked as documented
+        - Worked, but the docs are wrong about something
+        - Did not work
+        - I am opening a PR with a port
+    validations:
+      required: true
+  - type: textarea
+    id: detail
+    attributes:
+      label: What happened
+      description: Commands run and output, verbatim where short. If something failed, the error text matters more than a description of it.
+    validations:
+      required: true

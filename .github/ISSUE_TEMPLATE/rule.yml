@@ -1,0 +1,44 @@
+name: Rule correction or a failure mode to add
+description: A rule that cost you something, a mistake missing from the table, or a spec claim that went stale
+labels: ["rules"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The mistakes table earns its place by being specific, so a concrete account of what broke is
+        worth more than a general suggestion.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind
+      options:
+        - A mistake that bit me and is not in the table
+        - A rule here is wrong or made things worse
+        - The specification summary is out of date
+        - Something is ambiguous enough that two sessions read it differently
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: Section of SKILL.md, or the exact line
+      placeholder: "SKILL.md §4, the noclobber lock"
+  - type: input
+    id: version
+    attributes:
+      label: Claude Code version
+      description: Required for a stale spec claim; `claude --version`
+      placeholder: "2.1.263"
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got. Two sessions and the order they acted in, if that is what it took.
+    validations:
+      required: true
+  - type: textarea
+    id: fix
+    attributes:
+      label: What the rule should say instead
+      description: Optional — a diagnosis without a proposed fix is still useful.

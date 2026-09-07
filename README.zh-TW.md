@@ -107,20 +107,9 @@ macOS 與 WSL 2 有 POSIX shell，理論上全部都能跑，但兩者都未經�
 
 ## 歡迎貢獻
 
-歡迎開 issue 與 pull request。特別有幫助的是：
-
-- **Windows 支援。** 缺兩塊，都在協定的檔案那一半：沒有上鎖的輔助工具，也沒有監看器。
-  `SKILL.md` 有 `FileMode.CreateNew` 的上鎖寫法，但沒有隨附也沒有人跑過。
-  做一份移植，或回報「WSL 2 在實務上就夠用了」，都能補掉這裡最大的缺口。
-- **macOS 驗證。** `watch-mailbox.sh` 只在 Linux 上以 `sh`、`dash`、`bash` 跑過。
-  裡面有一段給 macOS 的 BSD `stat` 退路，但沒有人真的跑過。
-- **值得補進去的坑。** 如果這裡某條規則讓你付出過代價，或你踩到的錯誤不在表上，
-  開個 issue 描述發生了什麼。那張表的價值來自夠具體。
-- **勘誤。** 規格速查跟著 Claude Code 的官方行為走，產品一改就會過時。
-  指出是哪個版本讓某句話不再成立，就能修掉。
-
-請維持通用性：不要出現專案名稱或個人路徑，一律用 `<me>` ／ `<peer>` ／ `<mailbox>`。
-`SKILL.md` 與腳本只用英文；`README.zh-TW.md` 與 `README.md` 互為鏡像，改一邊就要改另一邊。
+歡迎開 issue 與 pull request，細節見 [CONTRIBUTING.md](CONTRIBUTING.md)（英文）。
+現在最需要補的兩塊：Windows 的上鎖工具與監看器，以及有人能回報
+`scripts/watch-mailbox.sh` 在 macOS 上到底跑不跑得動。
 
 ## 授權
 
