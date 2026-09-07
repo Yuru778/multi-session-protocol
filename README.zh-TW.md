@@ -20,6 +20,22 @@ Claude Code 有官方的跨 session 訊息（`ListAgents` ／ `SendMessage`）�
 
 完整規則、每一列的最小範例、開場檢查清單與常見錯誤都在 [`SKILL.md`](SKILL.md)（內容為英文）。
 
+## 什麼時候不該用這個
+
+這個 skill 是給**你自己在不同 terminal 開的、各自獨立的 session**，以及根本不是 Claude Code session
+的 agent 用的。其他形狀有兩個更輕的選項：
+
+- **[Subagent](https://code.claude.com/docs/en/sub-agents)** 在單一 session 內運作，做完把結果回傳給呼叫者。
+  你要的只是一個幫手而不是對等的同事時，用它。
+- **[Agent teams](https://code.claude.com/docs/en/agent-teams)** 是官方做法：由一個 lead session
+  spawn 出 teammate 並負責統籌，內建共享任務清單、每個 agent 各自的信箱、搶任務用 file lock、
+  閒置自動通知。該由某一個 session 統籌時，用它。但它是實驗性功能、預設關閉
+  （`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`），一個 team 只屬於建立它的那個 session，
+  而且沒辦法把非 Claude Code session 的 agent 納進來。
+
+合用 team 的工作就用 team。這個 skill 從 team 停下來的地方開始：**沒有人 spawn 出來的對等 session**，
+以及**根本收不到 `SendMessage` 的對象**。
+
 ## 安裝
 
 ```bash
@@ -45,3 +61,21 @@ scripts/watch-mailbox.ps1    信箱監看器，PowerShell 5.1+（原生 Windows�
 
 跨 session 訊息需要 Claude Code v2.1.224 以上（原生 Windows 為 v2.1.234），
 `notify_when_idle` 需要雙方都在 v2.1.236 以上。用 `/list-agents` 確認某個 session 有沒有這個功能。
+
+## 相關作品
+
+有幾個專案在解相鄰的問題。它們各自都做了一套自己的傳輸層。這個 skill 在 Claude 對 Claude 的情況
+不做任何傳輸層 —— 只負責決定訊息走 Claude Code 本來就有的哪一條路 —— 只有在官方管道到不了的地方，
+才退回到單純的追加寫檔。
+
+- **[claude-code-session-bridge](https://github.com/PatilShreyas/claude-code-session-bridge)** ——
+  檔案信箱 ＋ 幾支 bash 腳本 ＋ 一個教 agent 協定的 skill。它早於官方的跨 session 訊息，
+  以輪詢 JSON inbox/outbox 目錄運作，因此沒有「會喚醒對方」與「不會喚醒對方」的分級。
+- **[agent-peers-mcp](https://github.com/Co-Messi/agent-peers-mcp)** 與性質相近的
+  **[claude-peers-mcp](https://github.com/jamditis/claude-peers-mcp)** —— MCP server，
+  背後跑一台本機 broker daemon（HTTP + SQLite），用自己的協定取代官方工具。
+  agent-peers 確實有區分喚醒訊號與不打擾的留言，也確實能接到非 Claude 的 CLI agent，
+  是意圖上跟這個 skill 最接近的一個，儘管實作路線完全相反。
+- **[agent-bridge](https://github.com/EthanSK/agent-bridge)** —— 跨機器、走 SSH 的
+  agent harness 之間的點對點訊息。
+

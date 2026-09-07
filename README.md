@@ -23,6 +23,23 @@ This skill mixes the two channels:
 The full rules, a minimal example for each row, the opening checklist and the common mistakes are in
 [`SKILL.md`](SKILL.md).
 
+## When not to use this
+
+This skill is for **independent sessions you start and steer yourself**, in separate terminals, plus
+agents that are not Claude Code sessions at all. Two lighter options cover the other shapes:
+
+- **[Subagents](https://code.claude.com/docs/en/sub-agents)** work inside a single session and report
+  their result back to the caller. Use them when you just need a helper, not a peer.
+- **[Agent teams](https://code.claude.com/docs/en/agent-teams)** are the official way for one lead
+  session to spawn and supervise teammates, with a shared task list, per-agent mailboxes,
+  file-locked task claiming and automatic idle notifications. Use them when one session should own
+  the coordination. They are experimental and off by default
+  (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`), a team is scoped to the session that created it, and a
+  team cannot include an agent that is not a Claude Code session.
+
+If a team fits your work, use the team. This skill starts where teams stop: peers that no one
+spawned, and peers that cannot receive `SendMessage` at all.
+
 ## Install
 
 ```bash
@@ -49,3 +66,22 @@ into your context. You only need one if you are talking to an agent that cannot 
 
 Cross-session messaging needs Claude Code v2.1.224 or later (v2.1.234 on native Windows), and
 `notify_when_idle` needs v2.1.236 on both sides. Run `/list-agents` to check a session.
+
+## Prior art
+
+Several projects solve neighbouring problems. Each of them builds a transport of its own. This skill
+builds none for Claude-to-Claude — it routes over what Claude Code already provides — and falls back
+to plain appended files only where nothing official reaches.
+
+- **[claude-code-session-bridge](https://github.com/PatilShreyas/claude-code-session-bridge)** — a
+  file-based mailbox, bash scripts and a skill that teaches agents the protocol. It predates official
+  cross-session messaging and polls JSON inbox/outbox directories, so it carries no distinction
+  between a message that wakes the peer and a note that does not.
+- **[agent-peers-mcp](https://github.com/Co-Messi/agent-peers-mcp)** and the related
+  **[claude-peers-mcp](https://github.com/jamditis/claude-peers-mcp)** — MCP servers backed by a local
+  broker daemon (HTTP + SQLite) that replace the official tools with their own protocol. agent-peers
+  does separate wake signals from non-intrusive notes, and does reach a non-Claude CLI agent, which
+  makes it the closest in intent to this skill despite the opposite implementation.
+- **[agent-bridge](https://github.com/EthanSK/agent-bridge)** — peer-to-peer messaging between agent
+  harnesses across machines, over SSH.
+
